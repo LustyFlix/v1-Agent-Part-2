@@ -1,0 +1,49 @@
+name: Extract and Commit Bolt Project
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Required to allow the bot to push files back to your repo
+permissions:
+  contents: write
+
+jobs:
+  extract-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repo
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history so we can push back
+
+      # 2. Extract the zip
+      - name: Extract bolt.zip to Root
+        run: |
+          if [ -f "bolt.zip" ]; then
+            unzip -o bolt.zip -d .
+            rm bolt.zip
+            echo "Extraction successful and zip removed."
+          else
+            echo "bolt.zip not found. It might already be extracted."
+            exit 0
+          fi
+
+      # 3. Commit the source code back to the repository
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          
+          # Only commit if there are actually new files to avoid workflow errors
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Automated: Extract bolt.zip to source"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
